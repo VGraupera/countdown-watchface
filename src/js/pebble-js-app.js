@@ -11,7 +11,9 @@ Pebble.addEventListener("appmessage", function(e) {
 function sendContents() {
   var label = localStorage.getItem('label') || 'Set this in Settings...';
   var target = localStorage.getItem('target');
-  Pebble.sendAppMessage({ "label": label, "target": target });
+  var date = new Date(target);
+  console.log("Date "+date + " "+date.getTime()/1000);
+  Pebble.sendAppMessage({ "label": label, "target": ''+date.getTime()/1000});
 }
 
 Pebble.addEventListener('showConfiguration', function(e) {

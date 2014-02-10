@@ -75,7 +75,26 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
   Tuple *tuple = dict_find(iter, KEY_TARGET);
   if (!(tuple && tuple->type == TUPLE_CSTRING)) return;
   APP_LOG(APP_LOG_LEVEL_DEBUG, "key_target... %s", tuple->value->cstring);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "key_target as long... %ld", atol(tuple->value->cstring));
 
+  time_t test_time = atol(tuple->value->cstring);
+  struct tm* lt = localtime(&test_time);
+  static char time_txt[32];
+  strftime(time_txt, 32, "%c", lt);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "date... %s", time_txt);
+
+    time_t now = time(NULL);
+  struct tm *current_time = localtime(&now);
+
+  time_t elapsedSec = difftime( test_time , now );
+// but elapsedSec can be any duration, e.g. 3734, as long as it is in seconds
+
+struct tm * ptm = gmtime( &elapsedSec );
+APP_LOG(APP_LOG_LEVEL_DEBUG, "elapsed time: %02dd %02dh %02dm %02ds\n",
+        ptm->tm_yday,
+        ptm->tm_hour,
+        ptm->tm_min,
+        ptm->tm_sec );
 }
 
 static void in_dropped_handler(AppMessageResult reason, void *context) {
