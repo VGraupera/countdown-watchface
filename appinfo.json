@@ -1,0 +1,36 @@
+{
+  "uuid": "337079a6-c031-4254-b28c-862732f287f4",
+  "shortName": "Countdown",
+  "longName": "Countdown",
+  "companyName": "Vidal Graupera",
+  "versionCode": 1,
+  "versionLabel": "1.0.0",
+  "watchapp": {
+    "watchface": true
+  },
+  "appKeys": {
+    "label": 0,
+    "target": 1,
+    "update": 2
+  },
+  "capabilities": [ "configurable" ],
+  "resources": {
+    "media": [
+      {
+      "type": "font",
+      "name": "DROID_SERIF_18",
+      "file": "fonts/Droid_Serif/DroidSerif.ttf"
+    },
+    {
+      "type": "font",
+      "name": "DROID_SANS_18",
+      "file": "fonts/Droid_Sans/DroidSans.ttf"
+    },
+    {
+      "type": "font",
+      "name": "DROID_SANS_BOLD_48",
+      "file": "fonts/Droid_Sans/DroidSans-Bold.ttf"
+    }
+    ]
+  }
+}
