@@ -5,7 +5,10 @@
 #define TIME_FRAME      (GRect(0, 18, 144, 168-6))
 #define DATE_FRAME      (GRect(0, 66, 144-4, 168-62))
 
-#define TEXT_FRAME      (GRect(4, 90, 144-8, 78))
+#define DELTA_FRAME      (GRect(4, 90, 144-8, 140-90))
+#define TEXT_FRAME      (GRect(4, 140, 144-8, 168-140))
+
+#define DELTA_T_PKEY 1
 
 enum {
   KEY_LABEL = 0,
@@ -18,6 +21,7 @@ Window *window;
 TextLayer *time_layer;
 TextLayer *date_layer;
 TextLayer *day_layer;
+TextLayer *delta_layer;
 TextLayer *text_layer;
 
 GFont font_time;
@@ -25,6 +29,38 @@ GFont font_subhead;
 GFont font_text;
 
 static void requestUpdate();
+
+static void show_delta()
+{
+  static char delta_text[32];
+  time_t delta_t = persist_exists(DELTA_T_PKEY) ? persist_read_int(DELTA_T_PKEY) : 0;
+  struct tm* lt = localtime(&delta_t);
+  static char time_txt[32];
+  strftime(time_txt, 32, "%c", lt);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "date... %s", time_txt);
+
+  time_t now = time(NULL);
+  localtime(&now);
+
+  time_t elapsedSec = difftime( delta_t , now );
+
+  struct tm * ptm = gmtime( &elapsedSec );
+  /*APP_LOG(APP_LOG_LEVEL_DEBUG, "elapsed time: %02dd %02dh %02dm %02ds\n",*/
+      /*ptm->tm_yday,*/
+      /*ptm->tm_hour,*/
+      /*ptm->tm_min,*/
+      /*ptm->tm_sec );*/
+
+  snprintf(delta_text, sizeof(delta_text), "%02dd %02dh %02dm %02ds",
+      ptm->tm_yday,
+      ptm->tm_hour,
+      ptm->tm_min,
+      ptm->tm_sec);
+
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "delta text: %s\n", delta_text);
+
+  text_layer_set_text(delta_layer, delta_text);
+}
 
 // Called once per second
 static void handle_second_tick(struct tm* tick_time, TimeUnits units_changed) {
@@ -62,6 +98,7 @@ static void handle_second_tick(struct tm* tick_time, TimeUnits units_changed) {
     text_layer_set_text(date_layer, date_text);
   }
 
+  show_delta();
 }
 
 static void in_received_handler(DictionaryIterator *iter, void *context) {
@@ -74,27 +111,9 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
 
   Tuple *tuple = dict_find(iter, KEY_TARGET);
   if (!(tuple && tuple->type == TUPLE_CSTRING)) return;
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "key_target... %s", tuple->value->cstring);
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "key_target as long... %ld", atol(tuple->value->cstring));
 
-  time_t test_time = atol(tuple->value->cstring);
-  struct tm* lt = localtime(&test_time);
-  static char time_txt[32];
-  strftime(time_txt, 32, "%c", lt);
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "date... %s", time_txt);
-
-    time_t now = time(NULL);
-  struct tm *current_time = localtime(&now);
-
-  time_t elapsedSec = difftime( test_time , now );
-// but elapsedSec can be any duration, e.g. 3734, as long as it is in seconds
-
-struct tm * ptm = gmtime( &elapsedSec );
-APP_LOG(APP_LOG_LEVEL_DEBUG, "elapsed time: %02dd %02dh %02dm %02ds\n",
-        ptm->tm_yday,
-        ptm->tm_hour,
-        ptm->tm_min,
-        ptm->tm_sec );
+  time_t delta_t = atol(tuple->value->cstring);
+  persist_write_int(DELTA_T_PKEY, delta_t);
 }
 
 static void in_dropped_handler(AppMessageResult reason, void *context) {
@@ -160,11 +179,18 @@ static void do_init(void) {
   text_layer_set_text_alignment(date_layer, GTextAlignmentRight);
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(date_layer));
 
+  delta_layer = text_layer_create(DELTA_FRAME);
+  text_layer_set_text_color(delta_layer, GColorWhite);
+  text_layer_set_background_color(delta_layer, GColorClear);
+  text_layer_set_font(delta_layer, font_subhead);
+  text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
+  layer_add_child(window_get_root_layer(window), text_layer_get_layer(delta_layer));
+
   text_layer = text_layer_create(TEXT_FRAME);
   text_layer_set_text_color(text_layer, GColorWhite);
   text_layer_set_background_color(text_layer, GColorClear);
   text_layer_set_font(text_layer, font_text);
-  text_layer_set_text_alignment(text_layer, GTextAlignmentLeft);
+  text_layer_set_text_alignment(text_layer, GTextAlignmentRight);
   text_layer_set_overflow_mode(text_layer, GTextOverflowModeTrailingEllipsis);
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(text_layer));
 
@@ -183,6 +209,7 @@ static void do_init(void) {
 static void do_deinit(void) {
   tick_timer_service_unsubscribe();
   text_layer_destroy(time_layer);
+  text_layer_destroy(delta_layer);
   text_layer_destroy(date_layer);
   text_layer_destroy(day_layer);
   window_destroy(window);
