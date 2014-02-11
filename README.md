@@ -1,4 +1,4 @@
-![Screenshot](https://rawgithub.com/VGraupera/note-to-self-watchface/master/screenshot.png)
+![Screenshot](https://rawgithub.com/VGraupera/countdown-watchface/master/appstore/pebble-screenshot_1.png)
 
 
 Countdown Watchface
