@@ -19,9 +19,8 @@ function sendContents() {
 Pebble.addEventListener('showConfiguration', function(e) {
   var label = localStorage.getItem('label') || '';
   var target = localStorage.getItem('target') || '';
-	//var uri = 'https://rawgithub.com/VGraupera/note-to-self-watchface/master/html/configuration.html?' +
 	var uri = 'https://vgraupera.s3.amazonaws.com/pebble/configuration.html?' +
-				'label=' + encodeURIComponent(label) + "&target=" + encodeURIComponent(label);
+				'label=' + encodeURIComponent(label) + "&target=" + encodeURIComponent(target);
 	console.log('showing configuration at uri: ' + uri);
 	Pebble.openURL(uri);
 });

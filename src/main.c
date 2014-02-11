@@ -5,8 +5,8 @@
 #define TIME_FRAME      (GRect(0, 18, 144, 168-6))
 #define DATE_FRAME      (GRect(0, 66, 144-4, 168-62))
 
-#define DELTA_FRAME      (GRect(4, 90, 144-8, 140-90))
-#define TEXT_FRAME      (GRect(4, 140, 144-8, 168-140))
+#define DELTA_FRAME     (GRect(4, 95, 144-8, 30))
+#define TEXT_FRAME      (GRect(4, 125, 144-8, 168-125))
 
 #define DELTA_T_PKEY 1
 
@@ -34,32 +34,24 @@ static void show_delta()
 {
   static char delta_text[32];
   time_t delta_t = persist_exists(DELTA_T_PKEY) ? persist_read_int(DELTA_T_PKEY) : 0;
-  struct tm* lt = localtime(&delta_t);
-  static char time_txt[32];
-  strftime(time_txt, 32, "%c", lt);
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "date... %s", time_txt);
 
   time_t now = time(NULL);
   localtime(&now);
 
   time_t elapsedSec = difftime( delta_t , now );
+  if (elapsedSec > 0) {
+    struct tm * ptm = gmtime( &elapsedSec );
 
-  struct tm * ptm = gmtime( &elapsedSec );
-  /*APP_LOG(APP_LOG_LEVEL_DEBUG, "elapsed time: %02dd %02dh %02dm %02ds\n",*/
-      /*ptm->tm_yday,*/
-      /*ptm->tm_hour,*/
-      /*ptm->tm_min,*/
-      /*ptm->tm_sec );*/
+    snprintf(delta_text, sizeof(delta_text), "%02dd %02dh %02dm",
+        ptm->tm_yday,
+        ptm->tm_hour,
+        ptm->tm_min);
 
-  snprintf(delta_text, sizeof(delta_text), "%02dd %02dh %02dm %02ds",
-      ptm->tm_yday,
-      ptm->tm_hour,
-      ptm->tm_min,
-      ptm->tm_sec);
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "delta text: %s\n", delta_text);
-
-  text_layer_set_text(delta_layer, delta_text);
+    text_layer_set_text(delta_layer, delta_text);
+  }
+  else {
+    text_layer_set_text(delta_layer, "It's here!");
+  }
 }
 
 // Called once per second
@@ -70,6 +62,14 @@ static void handle_second_tick(struct tm* tick_time, TimeUnits units_changed) {
   static char day_text[] = "Xxxxxxxxxxx";
 
   char *time_format;
+
+  if (units_changed & DAY_UNIT) {
+    strftime(day_text, sizeof(day_text), "%A", tick_time);
+    text_layer_set_text(day_layer, day_text);
+
+    strftime(date_text, sizeof(date_text), "%B %e", tick_time);
+    text_layer_set_text(date_layer, date_text);
+  }
 
   if (units_changed & MINUTE_UNIT) {
     if (clock_is_24h_style()) {
@@ -88,17 +88,8 @@ static void handle_second_tick(struct tm* tick_time, TimeUnits units_changed) {
     }
 
     text_layer_set_text(time_layer, time_text);
+    show_delta();
   }
-
-  if (units_changed & DAY_UNIT) {
-    strftime(day_text, sizeof(day_text), "%A", tick_time);
-    text_layer_set_text(day_layer, day_text);
-
-    strftime(date_text, sizeof(date_text), "%B %e", tick_time);
-    text_layer_set_text(date_layer, date_text);
-  }
-
-  show_delta();
 }
 
 static void in_received_handler(DictionaryIterator *iter, void *context) {
@@ -107,13 +98,16 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
   Tuple *label_tuple = dict_find(iter, KEY_LABEL);
   if (!(label_tuple && label_tuple->type == TUPLE_CSTRING)) return;
 
-  text_layer_set_text(text_layer, label_tuple->value->cstring);
+  static char until_text[32];
+  snprintf(until_text, sizeof(until_text), "Until %s", label_tuple->value->cstring);
+  text_layer_set_text(text_layer, until_text);
 
   Tuple *tuple = dict_find(iter, KEY_TARGET);
   if (!(tuple && tuple->type == TUPLE_CSTRING)) return;
 
   time_t delta_t = atol(tuple->value->cstring);
   persist_write_int(DELTA_T_PKEY, delta_t);
+  show_delta();
 }
 
 static void in_dropped_handler(AppMessageResult reason, void *context) {
@@ -189,9 +183,9 @@ static void do_init(void) {
   text_layer = text_layer_create(TEXT_FRAME);
   text_layer_set_text_color(text_layer, GColorWhite);
   text_layer_set_background_color(text_layer, GColorClear);
-  text_layer_set_font(text_layer, font_text);
+  text_layer_set_font(text_layer, font_subhead);
   text_layer_set_text_alignment(text_layer, GTextAlignmentRight);
-  text_layer_set_overflow_mode(text_layer, GTextOverflowModeTrailingEllipsis);
+  text_layer_set_overflow_mode(text_layer, GTextOverflowModeFill);
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(text_layer));
 
   app_message_init();
