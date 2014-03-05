@@ -1,0 +1,27 @@
+<p>
+<a href="#/new" class="btn btn-default">+ Add Event</a>
+</p>
+<div class="table-responsive">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Event</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+    <tr ng-hide="events.length"><td>No events found</td></tr>
+    <tr ng-repeat="event in events">
+      <td>
+        <a href="#/edit/{{$index}}">
+          {{event.name}}
+        </a>
+      </td>
+      <td>{{event.date}}</td>
+    </tr>
+    </tbody>
+  </table>
+</div>
+<p>
+<button ng-click="save()" class='btn btn-primary btn-block' id='save'>Save</button>
+</p>
