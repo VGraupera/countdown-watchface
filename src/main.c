@@ -5,15 +5,29 @@
 #define TIME_FRAME      (GRect(0, 18, 144, 168-6))
 #define DATE_FRAME      (GRect(0, 66, 144-4, 168-62))
 
-#define DELTA_FRAME     (GRect(4, 95, 144-8, 30))
+#define DELTA_FRAME     (GRect(4, 100, 144-8, 30))
 #define TEXT_FRAME      (GRect(4, 125, 144-8, 168-125))
 
 #define DELTA_T_PKEY 1
 
+#define MAX_RECORDS 30
+
+typedef struct {
+  char name[32];
+  time_t  target_time;
+} EventRecord;
+
+static EventRecord records[MAX_RECORDS];
+static int total_records;
+static int current_record;
+static int num_records;
+
 enum {
-  KEY_LABEL = 0,
+  KEY_NAME = 0,
   KEY_TARGET,
-  KEY_REQUEST_UPDATE
+  KEY_REQUEST_UPDATE,
+  KEY_REQUEST_RESET,
+  KEY_LENGTH
 };
 
 // App-specific data
@@ -30,28 +44,42 @@ GFont font_text;
 
 static void requestUpdate();
 
-static void show_delta()
-{
-  static char delta_text[32];
-  time_t delta_t = persist_exists(DELTA_T_PKEY) ? persist_read_int(DELTA_T_PKEY) : 0;
+static void show_delta() {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "%s (%d of %d)", __PRETTY_FUNCTION__, current_record, num_records);
 
+  if (num_records == 0) {
+    text_layer_set_text(delta_layer, "No countdowns.");
+    text_layer_set_text(text_layer, "Add using Settings");
+    return;
+  }
+  static char delta_text[32];
+  /*time_t delta_t = persist_exists(DELTA_T_PKEY) ? persist_read_int(DELTA_T_PKEY) : 0;*/
+  time_t delta_t = records[current_record].target_time;
   time_t now = time(NULL);
   localtime(&now);
 
-  time_t elapsedSec = difftime( delta_t , now );
-  if (elapsedSec > 0) {
-    struct tm * ptm = gmtime( &elapsedSec );
-
-    snprintf(delta_text, sizeof(delta_text), "%02dd %02dh %02dm",
-        ptm->tm_yday,
-        ptm->tm_hour,
-        ptm->tm_min);
-
-    text_layer_set_text(delta_layer, delta_text);
+  time_t elapsedSec;
+  if (delta_t >= now) {
+    elapsedSec = difftime( delta_t , now );
   }
   else {
-    text_layer_set_text(delta_layer, "It's here!");
+    elapsedSec = difftime( now, delta_t );
   }
+  struct tm * ptm = gmtime( &elapsedSec );
+
+  snprintf(delta_text, sizeof(delta_text), "%02d days",
+      ptm->tm_yday);
+
+  text_layer_set_text(delta_layer, delta_text);
+  static char until_text[32];
+  if (delta_t > now) {
+    snprintf(until_text, sizeof(until_text), "Until %s", records[current_record].name);
+  }
+  else {
+    snprintf(until_text, sizeof(until_text), "Since %s", records[current_record].name);
+  }
+
+  text_layer_set_text(text_layer, until_text);
 }
 
 // Called once per second
@@ -79,7 +107,7 @@ static void handle_second_tick(struct tm* tick_time, TimeUnits units_changed) {
     }
 
     strftime(time_text, sizeof(time_text), time_format, tick_time);
-    requestUpdate();
+    /*requestUpdate();*/
 
     // Kludge to handle lack of non-padded hour format string
     // for twelve hour clock.
@@ -88,26 +116,45 @@ static void handle_second_tick(struct tm* tick_time, TimeUnits units_changed) {
     }
 
     text_layer_set_text(time_layer, time_text);
+
     show_delta();
   }
 }
 
 static void in_received_handler(DictionaryIterator *iter, void *context) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "App Message Received...");
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", __PRETTY_FUNCTION__);
 
-  Tuple *label_tuple = dict_find(iter, KEY_LABEL);
-  if (!(label_tuple && label_tuple->type == TUPLE_CSTRING)) return;
+  Tuple *name_tuple = dict_find(iter, KEY_NAME);
+  Tuple *reset_tuple = dict_find(iter, KEY_REQUEST_RESET);
 
-  static char until_text[32];
-  snprintf(until_text, sizeof(until_text), "Until %s", label_tuple->value->cstring);
-  text_layer_set_text(text_layer, until_text);
+  if (reset_tuple) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "received RESET REQUEST");
+    Tuple *len_tuple = dict_find(iter, KEY_LENGTH);
+    current_record = 0;
+    num_records = 0;
+    total_records = (int)len_tuple->value->int32;
+    if (total_records > MAX_RECORDS) {
+      total_records = MAX_RECORDS;
+    }
+  }
+  else if (name_tuple) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "received Event %s", name_tuple->value->cstring);
+    EventRecord record;
+    strncpy(record.name, name_tuple->value->cstring, sizeof(record.name));
 
-  Tuple *tuple = dict_find(iter, KEY_TARGET);
-  if (!(tuple && tuple->type == TUPLE_CSTRING)) return;
+    /*bail if no time*/
+    Tuple *tuple = dict_find(iter, KEY_TARGET);
+    if (!(tuple && tuple->type == TUPLE_CSTRING)) return;
 
-  time_t delta_t = atol(tuple->value->cstring);
-  persist_write_int(DELTA_T_PKEY, delta_t);
-  show_delta();
+    time_t delta_t = atol(tuple->value->cstring);
+    record.target_time = delta_t;
+    records[num_records] = record;
+    num_records++;
+
+    if (num_records == total_records) {
+      show_delta();
+    }
+  }
 }
 
 static void in_dropped_handler(AppMessageResult reason, void *context) {
@@ -122,12 +169,21 @@ static void out_failed_handler(DictionaryIterator *failed, AppMessageResult reas
   APP_LOG(APP_LOG_LEVEL_DEBUG, "App Message Failed to Send!  %i", reason);
 }
 
-static void requestUpdate()
-{
+static void requestUpdate() {
   DictionaryIterator *iter;
   app_message_outbox_begin(&iter);
   dict_write_uint8(iter, KEY_REQUEST_UPDATE, 1);
   app_message_outbox_send();
+}
+
+static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", __PRETTY_FUNCTION__);
+  vibes_short_pulse();
+  current_record++;
+  if (current_record >= num_records) {
+    current_record = 0;
+  }
+  show_delta();
 }
 
 static void app_message_init(void) {
@@ -184,23 +240,25 @@ static void do_init(void) {
   text_layer_set_text_color(text_layer, GColorWhite);
   text_layer_set_background_color(text_layer, GColorClear);
   text_layer_set_font(text_layer, font_subhead);
-  text_layer_set_text_alignment(text_layer, GTextAlignmentRight);
+  text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
   text_layer_set_overflow_mode(text_layer, GTextOverflowModeFill);
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(text_layer));
 
   app_message_init();
   requestUpdate();
 
-    // Update the screen right away
+  // Update the screen right away
   time_t now = time(NULL);
   handle_second_tick(localtime(&now), SECOND_UNIT | MINUTE_UNIT | HOUR_UNIT | DAY_UNIT );
   // And then every second
   tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
 
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(time_layer));
+  accel_tap_service_subscribe(accel_tap_handler);
 }
 
 static void do_deinit(void) {
+  accel_tap_service_unsubscribe();
   tick_timer_service_unsubscribe();
   text_layer_destroy(time_layer);
   text_layer_destroy(delta_layer);
