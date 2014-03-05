@@ -1,5 +1,4 @@
-![Screenshot](https://rawgithub.com/VGraupera/countdown-watchface/master/appstore/pebble-screenshot_1.png)
-![Screenshot](https://rawgithub.com/VGraupera/countdown-watchface/master/appstore/pebble-screenshot_2.png)
+![Screenshot](https://countdown-watchface.s3.amazonaws.com/HeaderImage.png)
 
 
 Countdown Watchface
