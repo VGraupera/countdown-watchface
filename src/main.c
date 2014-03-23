@@ -253,7 +253,6 @@ static void do_init(void) {
   // And then every second
   tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
 
-  layer_add_child(window_get_root_layer(window), text_layer_get_layer(time_layer));
   accel_tap_service_subscribe(accel_tap_handler);
 }
 
@@ -264,6 +263,7 @@ static void do_deinit(void) {
   text_layer_destroy(delta_layer);
   text_layer_destroy(date_layer);
   text_layer_destroy(day_layer);
+  text_layer_destroy(text_layer);
   window_destroy(window);
 
   fonts_unload_custom_font(font_time);
