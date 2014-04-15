@@ -12,6 +12,8 @@
 
 #define MAX_RECORDS 30
 
+#define VIBRATE_PKEY 100
+
 typedef struct {
   char name[32];
   time_t  target_time;
@@ -21,13 +23,15 @@ static EventRecord records[MAX_RECORDS];
 static int total_records;
 static int current_record;
 static int num_records;
+static bool vibrate_on_switch;
 
 enum {
   KEY_NAME = 0,
   KEY_TARGET,
   KEY_REQUEST_UPDATE,
   KEY_REQUEST_RESET,
-  KEY_LENGTH
+  KEY_LENGTH,
+  KEY_VIBRATE
 };
 
 // App-specific data
@@ -126,6 +130,7 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
 
   Tuple *name_tuple = dict_find(iter, KEY_NAME);
   Tuple *reset_tuple = dict_find(iter, KEY_REQUEST_RESET);
+  Tuple *vibrate_tuple = dict_find(iter, KEY_VIBRATE);
 
   if (reset_tuple) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "received RESET REQUEST");
@@ -155,6 +160,10 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
       show_delta();
     }
   }
+  else if (vibrate_tuple) {
+   vibrate_on_switch = vibrate_tuple->value->int8;
+   APP_LOG(APP_LOG_LEVEL_DEBUG, "vibrate_on_switch %d", vibrate_on_switch);
+  }
 }
 
 static void in_dropped_handler(AppMessageResult reason, void *context) {
@@ -178,7 +187,10 @@ static void requestUpdate() {
 
 static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", __PRETTY_FUNCTION__);
-  vibes_short_pulse();
+
+  if (vibrate_on_switch) {
+    vibes_short_pulse();
+  }
   current_record++;
   if (current_record >= num_records) {
     current_record = 0;
@@ -196,8 +208,13 @@ static void app_message_init(void) {
   app_message_open(512, 64);
 }
 
+static void load_settings(void) {
+  vibrate_on_switch = persist_exists(VIBRATE_PKEY) && persist_read_bool(VIBRATE_PKEY);
+}
+
 // Handle the start-up of the app
 static void do_init(void) {
+  load_settings();
 
   // Create our app's base window
   window = window_create();
@@ -257,6 +274,8 @@ static void do_init(void) {
 }
 
 static void do_deinit(void) {
+  persist_write_bool(VIBRATE_PKEY, vibrate_on_switch);
+
   accel_tap_service_unsubscribe();
   tick_timer_service_unsubscribe();
   text_layer_destroy(time_layer);

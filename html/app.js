@@ -1,76 +1,71 @@
-var app = angular.module('eventsApp', ['ngRoute']);
-
-app.factory('Events', function () {
-  var events = [];
-  return {
-    data: function () {
-
-      if (localStorage.getItem("eventList") === null) {
-        events = [{
-          name: 'Christmas',
-          date: '2014-12-25'
-        }];
-      } else {
-        events = JSON.parse(localStorage.getItem("eventList")); // get value from localstorage
-      }
-
-      return events;
-    },
-    save: function () {
-      localStorage.setItem("eventList", JSON.stringify(events)); // saving array in html5 local storage
-    }
+var app = angular.module('eventsApp', ['ngRoute']).
+  config(function($locationProvider) {
+  $locationProvider.html5Mode(true);
+}).
+  run(function($rootScope, $location) {
+  // get initial state poassed from pebble
+  try {
+    $rootScope.vibrate = JSON.parse($location.search()['vibrate']);
+  } catch(e) {
+    $rootScope.vibrate = false;
   }
+  try {
+    $rootScope.events = JSON.parse($location.search()['events']) || [];
+  } catch(e) {
+    $rootScope.events = [];
+  }
+  // clear addressbar for routing
+  $location.replace();
+  $location.search('vibrate', null);
+  $location.search('events', null);
 });
 
 app.config(function($routeProvider) {
   $routeProvider
   .when('/', {
     controller:'ListCtrl',
-    templateUrl:'list.html'
+    templateUrl:'/list.html'
   })
   .when('/edit/:index', {
     controller:'EditCtrl',
-    templateUrl:'detail.html'
+    templateUrl:'/detail.html'
   })
   .when('/new', {
     controller:'CreateCtrl',
-    templateUrl:'detail.html'
+    templateUrl:'/detail.html'
   })
   .otherwise({
     redirectTo:'/'
   });
 });
 
-app.controller('ListCtrl', function($scope, Events){
-  $scope.events = Events.data();
+app.controller('ListCtrl',  ['$scope', '$rootScope', function($scope, $rootScope){
+  $scope.events = $rootScope.events;
+  $scope.vibrate = $rootScope.vibrate;
 
   $scope.save = function () {
-    document.location = 'pebblejs://close#' + encodeURIComponent(JSON.stringify( $scope.events ));
+    document.location = 'pebblejs://close#' + encodeURIComponent(JSON.stringify( { events: $scope.events, vibrate: $scope.vibrate } ));
   };
-});
+}]);
 
-app.controller('EditCtrl', function($scope, $location, Events, $routeParams){
-  $scope.events = Events.data();
+app.controller('EditCtrl', function($scope, $rootScope, $routeParams, $location) {
+  $scope.events = $rootScope.events;
   $scope.event = $scope.events[$routeParams.index];
 
   $scope.destroy = function(item) {
     var index=$scope.events.indexOf(item);
     $scope.events.splice(index,1);
-    Events.save();
     $location.path('/');
   };
 
   $scope.save = function() {
-    Events.save();
     $location.path('/');
   };
 });
 
-app.controller('CreateCtrl', function($scope, $location, Events, $routeParams){
-  $scope.events = Events.data();
+app.controller('CreateCtrl', function($scope, $rootScope,  $location) {
   $scope.save = function() {
-    $scope.events.push($scope.event);
-    Events.save();
+    $rootScope.events.push($scope.event);
     $location.path('/');
   };
 });

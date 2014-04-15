@@ -28,11 +28,9 @@ sendAppMessageQueue = ->
   else
     console.log "AppMessage queue is empty."
 
-sendEvents = ->
-  console.log "Sending event list ..."
-  events = []
-  if localStorage.getItem("eventList") isnt null
-    events = JSON.parse(localStorage.getItem("eventList")) # get value from localstorage
+sendConfiguration = ->
+  console.log "Sending config ..."
+  events = readEvents()
 
   appMessageQueue.push
     message:
@@ -46,23 +44,52 @@ sendEvents = ->
         name: event.name
         target: "" + date.getTime() / 1000
 
+  vibrate = false
+  if localStorage.getItem("vibrate") isnt null
+    vibrate = JSON.parse(localStorage.getItem("vibrate"))
+
+  appMessageQueue.push
+    message:
+      vibrate: vibrate
+
   sendAppMessageQueue()
+
+readEvents = () ->
+  events = []
+  if localStorage.getItem("eventList") isnt null
+    try
+      events = JSON.parse(localStorage.getItem("eventList"))
+    catch e
+      console.log "exception reading #{localStorage.getItem("eventList")}"
+  else
+    events = [
+      name: "Christmas"
+      date: "2014-12-25"
+    ]
+  events
 
 Pebble.addEventListener "ready", (e) ->
   console.log "On ready event ..."
-  sendEvents()
+  sendConfiguration()
 
 Pebble.addEventListener "appmessage", (e) ->
   console.log "Received from Pebble: " + JSON.stringify(e.payload)
   if e.payload.update
-    sendEvents()
+    sendConfiguration()
 
 Pebble.addEventListener "showConfiguration", (e) ->
-  Pebble.openURL "http://countdown-watchface.s3-website-us-west-1.amazonaws.com"
+  vibrate = localStorage.getItem("vibrate") or false
+  events = readEvents()
+  url = "http://countdown-watchface-v3.s3-website-us-west-1.amazonaws.com?events=" +
+    encodeURIComponent(JSON.stringify(events)) + "&vibrate=#{vibrate}"
+  console.log "open settings: #{url}"
+  Pebble.openURL url
 
 Pebble.addEventListener "webviewclosed", (e) ->
   if e.response
-    events = JSON.parse(decodeURIComponent(e.response))
-    console.log "Events received from settings page: " + JSON.stringify(events)
-    localStorage.setItem "eventList", JSON.stringify(events) # cache to local storage
-    sendEvents()
+    params = JSON.parse(decodeURIComponent(e.response))
+    console.log "Params received from settings page: " + JSON.stringify(params)
+    # cache to local storage;
+    localStorage.setItem "eventList", JSON.stringify(params.events)
+    localStorage.setItem "vibrate", params.vibrate
+    sendConfiguration()

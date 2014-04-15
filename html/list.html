@@ -1,11 +1,11 @@
 <p>
-<a href="#/new" class="btn btn-default">+ Add Event</a>
+<a href="/new" class="btn btn-default">+ Add Event</a>
 </p>
 <div class="table-responsive">
   <table class="table">
     <thead>
       <tr>
-        <th>Event</th>
+        <th>Name</th>
         <th>Date</th>
       </tr>
     </thead>
@@ -13,7 +13,7 @@
     <tr ng-hide="events.length"><td>No events found</td></tr>
     <tr ng-repeat="event in events">
       <td>
-        <a href="#/edit/{{$index}}">
+        <a href="/edit/{{$index}}">
           {{event.name}}
         </a>
       </td>
@@ -22,6 +22,14 @@
     </tbody>
   </table>
 </div>
+<h3>Options</h3>
+  <div class="checkbox">
+    <label>
+      <input type="checkbox" ng-model="vibrate"> Vibrate when switching
+    </label>
+  </div>
 <p>
 <button ng-click="save()" class='btn btn-primary btn-block' id='save'>Save</button>
 </p>
+
+
