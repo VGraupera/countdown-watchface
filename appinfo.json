@@ -21,8 +21,8 @@
     "media": [
       {
       "type": "font",
-      "name": "DROID_SERIF_18",
-      "file": "fonts/Droid_Serif/DroidSerif.ttf"
+      "name": "DROID_SANS_BOLD_18",
+      "file": "fonts/Droid_Sans/DroidSans-Bold.ttf"
     },
     {
       "type": "font",

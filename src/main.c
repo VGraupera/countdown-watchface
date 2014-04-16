@@ -8,6 +8,8 @@
 #define DELTA_FRAME     (GRect(4, 100, 144-8, 30))
 #define TEXT_FRAME      (GRect(4, 125, 144-8, 168-125))
 
+#define INVERTER_FRAME  (GRect(0, 90, 144, 168-90))
+
 #define DELTA_T_PKEY 1
 
 #define MAX_RECORDS 30
@@ -42,6 +44,8 @@ TextLayer *day_layer;
 TextLayer *delta_layer;
 TextLayer *text_layer;
 
+static InverterLayer *inverter_layer;
+
 GFont font_time;
 GFont font_subhead;
 GFont font_text;
@@ -71,7 +75,7 @@ static void show_delta() {
   }
   struct tm * ptm = gmtime( &elapsedSec );
 
-  snprintf(delta_text, sizeof(delta_text), "%02d days",
+  snprintf(delta_text, sizeof(delta_text), "%d days",
       ptm->tm_yday);
 
   text_layer_set_text(delta_layer, delta_text);
@@ -220,46 +224,50 @@ static void do_init(void) {
   window = window_create();
   window_stack_push(window, true);
   window_set_background_color(window, GColorBlack);
+  Layer *window_layer = window_get_root_layer(window);
 
   font_subhead = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_DROID_SANS_18));
   font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_DROID_SANS_BOLD_48));
-  font_text = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_DROID_SERIF_18));
+  font_text = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_DROID_SANS_BOLD_18));
 
   day_layer = text_layer_create(DAY_FRAME);
   text_layer_set_text_color(day_layer, GColorWhite);
   text_layer_set_background_color(day_layer, GColorClear);
   text_layer_set_font(day_layer, font_subhead);
   text_layer_set_text_alignment(day_layer, GTextAlignmentLeft);
-  layer_add_child(window_get_root_layer(window), text_layer_get_layer(day_layer));
+  layer_add_child(window_layer, text_layer_get_layer(day_layer));
 
   time_layer = text_layer_create(TIME_FRAME);
   text_layer_set_text_color(time_layer, GColorWhite);
   text_layer_set_background_color(time_layer, GColorClear);
   text_layer_set_font(time_layer, font_time);
   text_layer_set_text_alignment(time_layer, GTextAlignmentCenter);
-  layer_add_child(window_get_root_layer(window), text_layer_get_layer(time_layer));
+  layer_add_child(window_layer, text_layer_get_layer(time_layer));
 
   date_layer = text_layer_create(DATE_FRAME);
   text_layer_set_text_color(date_layer, GColorWhite);
   text_layer_set_background_color(date_layer, GColorClear);
   text_layer_set_font(date_layer, font_subhead);
   text_layer_set_text_alignment(date_layer, GTextAlignmentRight);
-  layer_add_child(window_get_root_layer(window), text_layer_get_layer(date_layer));
+  layer_add_child(window_layer, text_layer_get_layer(date_layer));
 
   delta_layer = text_layer_create(DELTA_FRAME);
   text_layer_set_text_color(delta_layer, GColorWhite);
   text_layer_set_background_color(delta_layer, GColorClear);
-  text_layer_set_font(delta_layer, font_subhead);
+  text_layer_set_font(delta_layer, font_text);
   text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
-  layer_add_child(window_get_root_layer(window), text_layer_get_layer(delta_layer));
+  layer_add_child(window_layer, text_layer_get_layer(delta_layer));
 
   text_layer = text_layer_create(TEXT_FRAME);
   text_layer_set_text_color(text_layer, GColorWhite);
   text_layer_set_background_color(text_layer, GColorClear);
-  text_layer_set_font(text_layer, font_subhead);
+  text_layer_set_font(text_layer, font_text);
   text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
   text_layer_set_overflow_mode(text_layer, GTextOverflowModeFill);
-  layer_add_child(window_get_root_layer(window), text_layer_get_layer(text_layer));
+  layer_add_child(window_layer, text_layer_get_layer(text_layer));
+
+  inverter_layer = inverter_layer_create(INVERTER_FRAME);
+  layer_add_child(window_layer, inverter_layer_get_layer(inverter_layer));
 
   app_message_init();
   requestUpdate();
