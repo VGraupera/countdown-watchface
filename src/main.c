@@ -165,7 +165,7 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
     }
   }
   else if (vibrate_tuple) {
-   vibrate_on_switch = vibrate_tuple->value->int8;
+   vibrate_on_switch = vibrate_tuple->value->uint8;
    APP_LOG(APP_LOG_LEVEL_DEBUG, "vibrate_on_switch %d", vibrate_on_switch);
   }
 }

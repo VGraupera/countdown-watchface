@@ -50,7 +50,7 @@ sendConfiguration = ->
 
   appMessageQueue.push
     message:
-      vibrate: vibrate
+      vibrate: vibrate && 1 || 0
 
   sendAppMessageQueue()
 
