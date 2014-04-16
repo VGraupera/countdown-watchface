@@ -261,7 +261,7 @@ static void do_init(void) {
   text_layer = text_layer_create(TEXT_FRAME);
   text_layer_set_text_color(text_layer, GColorWhite);
   text_layer_set_background_color(text_layer, GColorClear);
-  text_layer_set_font(text_layer, font_text);
+  text_layer_set_font(text_layer, font_subhead);
   text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
   text_layer_set_overflow_mode(text_layer, GTextOverflowModeFill);
   layer_add_child(window_layer, text_layer_get_layer(text_layer));
