@@ -73,10 +73,10 @@ static void show_delta() {
   else {
     elapsedSec = difftime( now, delta_t );
   }
-  struct tm * ptm = gmtime( &elapsedSec );
+  /*struct tm * ptm = gmtime( &elapsedSec );*/
 
-  snprintf(delta_text, sizeof(delta_text), "%d days",
-      ptm->tm_yday);
+  snprintf(delta_text, sizeof(delta_text), "%ld days",
+      elapsedSec/86400);
 
   text_layer_set_text(delta_layer, delta_text);
   static char until_text[32];

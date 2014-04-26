@@ -3,8 +3,8 @@
   "shortName": "Countdown",
   "longName": "Countdown",
   "companyName": "Vidal Graupera",
-  "versionCode": 4,
-  "versionLabel": "3.0",
+  "versionCode": 5,
+  "versionLabel": "3.1",
   "watchapp": {
     "watchface": true
   },
