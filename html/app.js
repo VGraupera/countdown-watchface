@@ -3,7 +3,7 @@ var app = angular.module('eventsApp', ['ngRoute']).
   $locationProvider.html5Mode(true);
 }).
   run(function($rootScope, $location) {
-  // get initial state poassed from pebble
+  // get initial state from pebble
   try {
     $rootScope.vibrate = JSON.parse($location.search()['vibrate']);
   } catch(e) {
@@ -11,10 +11,13 @@ var app = angular.module('eventsApp', ['ngRoute']).
   }
   try {
     $rootScope.events = JSON.parse($location.search()['events']) || [];
+    angular.forEach( $rootScope.events,function(value,index){
+      delete value["$$hashKey"];
+    })
   } catch(e) {
     $rootScope.events = [];
   }
-  // clear addressbar for routing
+  // clear URL for routing
   $location.replace();
   $location.search('vibrate', null);
   $location.search('events', null);
